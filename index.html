@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DairyFeed AI - Smart Feed & Silage Testing</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #2d7a3e;
+            --primary-dark: #1e5c2a;
+            --accent: #f39c12;
+            --danger: #e74c3c;
+            --warning: #f1c40f;
+            --info: #3498db;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --border: #e0e6ed;
+            --success: #27ae60;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .app-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .app-header h1 { font-size: 1.4rem; margin-bottom: 0.3rem; }
+        .app-header p { font-size: 0.85rem; opacity: 0.9; }
+        .lang-switcher {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .nav-tab {
+            padding: 0.7rem 1.2rem;
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .nav-tab:hover { border-color: var(--primary); color: var(--primary); }
+        .nav-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(45,122,62,0.3); }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-block { width: 100%; justify-content: center; }
+        .sensor-sim {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .sensor-sim h3 { margin-bottom: 0.5rem; }
+        .sensor-readings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .sensor-reading {
+            background: rgba(255,255,255,0.15);
+            padding: 1rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .sensor-reading .value { font-size: 1.5rem; font-weight: 700; }
+        .sensor-reading .label { font-size: 0.8rem; opacity: 0.9; }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .result-panel {
+            background: linear-gradient(135deg, #f8fff8 0%, #e8f5e9 100%);
+            border: 2px solid var(--success);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .quality-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .quality-excellent { background: #d4edda; color: #155724; }
+        .quality-good { background: #fff3cd; color: #856404; }
+        .quality-poor { background: #f8d7da; color: #721c24; }
+        .quality-danger { background: #f5c6cb; color: #721c24; }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .metric-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .metric-card.alert { border-left-color: var(--danger); }
+        .metric-card.warning { border-left-color: var(--warning); }
+        .metric-name { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.3rem; }
+        .metric-value { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+        .metric-status { font-size: 0.8rem; margin-top: 0.3rem; font-weight: 600; }
+        .advisory-box {
+            background: white;
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-top: 1rem;
+            border: 1px solid var(--border);
+        }
+        .advisory-title {
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .advisory-list { list-style: none; }
+        .advisory-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .advisory-list li:last-child { border-bottom: none; }
+        .qr-section {
+            text-align: center;
+            padding: 2rem;
+        }
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 1rem auto;
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .history-table th, .history-table td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        .history-table th {
+            background: var(--bg);
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+        .history-table tr:hover { background: var(--bg); }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.3rem;
+        }
+        .status-pass { background: var(--success); }
+        .status-fail { background: var(--danger); }
+        .status-warn { background: var(--warning); }
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--card);
+            padding: 1.2rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 0.85rem; color: var(--text-light); margin-top: 0.3rem; }
+        .offline-badge {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: var(--warning);
+            color: #333;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: none;
+            z-index: 1000;
+        }
+        .offline-badge.show { display: block; }
+        .image-upload {
+            border: 3px dashed var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 1rem;
+        }
+        .image-upload:hover { border-color: var(--primary); background: var(--bg); }
+        .image-upload.has-image {
+            border-color: var(--success);
+            background: #f0fff4;
+        }
+        .uploaded-image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+        .camera-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .camera-overlay.active { display: flex; }
+        .camera-container {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+        #cameraVideo { max-width: 100%; border-radius: 8px; }
+        .modal-buttons { display: flex; gap: 1rem; margin-top: 1rem; justify-content: center; }
+        .contamination-alert {
+            background: #fff5f5;
+            border: 2px solid var(--danger);
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: none;
+        }
+        .contamination-alert.show { display: block; animation: shake 0.5s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .silage-ph-scale {
+            display: flex;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 1rem 0;
+            position: relative;
+        }
+        .ph-segment { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: white; font-weight: 700; }
+        .ph-marker {
+            position: absolute;
+            top: -5px;
+            width: 4px;
+            height: 40px;
+            background: #333;
+            border-radius: 2px;
+            transition: left 0.5s;
+        }
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .app-header h1 { font-size: 1.1rem; }
+            .nav-tabs { justify-content: center; }
+            .container { padding: 0.5rem; }
+        }
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+        .tooltip::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover::after { opacity: 1; }
+        .feed-type-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        .feed-type-option {
+            padding: 1rem;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .feed-type-option:hover { border-color: var(--primary); }
+        .feed-type-option.selected {
+            border-color: var(--primary);
+            background: #e8f5e9;
+        }
+        .feed-type-option .icon { font-size: 1.5rem; margin-bottom: 0.3rem; }
+        .feed-type-option .name { font-size: 0.85rem; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <h1 id="appTitle">🐄 DairyFeed AI</h1>
+        <p id="appSubtitle">Smart AI-Enabled Rapid Feed & Silage Quality Testing</p>
+        <button class="lang-switcher" onclick="toggleLanguage()">🌐 <span id="langText">हिंदी</span></button>
+    </div>
+
+    <div class="container">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('feed-test')" data-tab="feed-test">
+                <span>🌾</span> <span class="tab-label">Feed Test</span>
+            </button>
+            <button class="nav-tab" onclick="showTab('silage-test')" data-tab="silage-test">
+                <span>🌽</span> <span class="tab-label">Silage Test</span>
+            </button>
+            <button class="nav-tab" onclick="showTab('contamination')" data-tab="contamination">
+                <span>⚠️</span> <span class="tab-label">Contamination</span>
+            </button>
+            <button class="nav-tab" onclick="showTab('advisory')" data-tab="advisory">
+                <span>📋</span> <span class="tab-label">Advisory</span>
+            </button>
+            <button class="nav-tab" onclick="showTab('history')" data-tab="history">
+                <span>📊</span> <span class="tab-label">History</span>
+            </button>
+            <button class="nav-tab" onclick="showTab('traceability')" data-tab="traceability">
+                <span>🔍</span> <span class="tab-label">Trace QR</span>
+            </button>
+        </div>
+
+        <!-- FEED TEST TAB -->
+        <div id="feed-test" class="tab-content active">
+            <div class="card">
+                <div class="card-title">🌾 <span id="feedTestTitle">Cattle Feed Quality Test</span></div>
+                
+                <div class="feed-type-selector" id="feedTypeSelector">
+                    <div class="feed-type-option selected" onclick="selectFeedType(this, 'green-fodder')">
+                        <div class="icon">🌿</div>
+                        <div class="name" data-en="Green Fodder" data-hi="हरा चारा">Green Fodder</div>
+                    </div>
+                    <div class="feed-type-option" onclick="selectFeedType(this, 'dry-fodder')">
+                        <div class="icon">🍂</div>
+                        <div class="name" data-en="Dry Fodder" data-hi="सूखा चारा">Dry Fodder</div>
+                    </div>
+                    <div class="feed-type-option" onclick="selectFeedType(this, 'concentrate')">
+                        <div class="icon">🌾</div>
+                        <div class="name" data-en="Concentrate" data-hi="केंद्रित">Concentrate</div>
+                    </div>
+                    <div class="feed-type-option" onclick="selectFeedType(this, 'mineral-mix')">
+                        <div class="icon">⚗️</div>
+                        <div class="name" data-en="Mineral Mix" data-hi="खनिज मिश्रण">Mineral Mix</div>
+                    </div>
+                    <div class="feed-type-option" onclick="selectFeedType(this, 'compound-feed')">
+                        <div class="icon">🥡</div>
+                        <div class="name" data-en="Compound Feed" data-hi="मिश्रित चारा">Compound Feed</div>
+                    </div>
+                </div>
+
+                <div class="sensor-sim">
+                    <h3 id="sensorSimTitle">📡 Simulating NIR Spectroscopy Sensor</h3>
+                    <p id="sensorSimDesc">Real-time spectral analysis simulation</p>
+                    <div class="sensor-readings" id="sensorReadings">
+                        <div class="sensor-reading">
+                            <div class="value" id="nirCP">--</div>
+                            <div class="label" id="nirCPLabel">Crude Protein %</div>
+                        </div>
+                        <div class="sensor-reading">
+                            <div class="value" id="nirMoisture">--</div>
+                            <div class="label" id="nirMoistLabel">Moisture %</div>
+                        </div>
+                        <div class="sensor-reading">
+                            <div class="value" id="nirFiber">--</div>
+                            <div class="label" id="nirFiberLabel">Fiber %</div>
+div>
+                        <div class="sensor-reading">
+                            <div class="value" id="nirEnergy">--</div>
+                            <div class="label" id="nirEnergyLabel">Energy (Mcal/kg)</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:1rem;">
+                        <button class="btn btn-accent" onclick="simulateNIRScan()" id="btnScan">
+                            <span>🔬</span> <span id="scanText">Start NIR Scan</span>
+                        </button>
+                    </div>
+                    <div class="progress-bar" style="margin-top:1rem; display:none;" id="scanProgressBar">
+                        <div class="progress-fill" id="scanProgress" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label id="labelFarmerName">Farmer Name</label>
+                        <input type="text" id="farmerName" placeholder="Enter name">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelLocation">Location/Village</label>
+                        <input type="text" id="location" placeholder="Enter village">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelSampleId">Sample ID (Auto)</label>
+                        <input type="text" id="sampleId" readonly value="FD-2026-0001">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelBatchNo">Batch Number</label>
+                        <input type="text" id="batchNo" placeholder="e.g., B-2026-045">
+                    </div>
+                </div>
+
+                <div style="margin-top:1rem;">
+                    <label id="labelImage" style="font-weight:600; display:block; margin-bottom:0.5rem;">Feed Sample Image (Computer Vision Analysis)</label>
+                    <div class="image-upload" id="imageUpload" onclick="document.getElementById('feedImage').click()">
+                        <div style="font-size:2rem;">📷</div>
+                        <div id="uploadText">Click to upload or capture feed image</div>
+                        <input type="file" id="feedImage" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
+                    </div>
+                    <div id="imagePreviewContainer" class="hidden">
+                        <img id="imagePreview" class="uploaded-image-preview" alt="Feed sample">
+                        <div style="text-align:center; margin-top:0.5rem;">
+                            <span id="cvResult" style="color:var(--primary); font-weight:600;"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-top:1rem;">
+                    <div class="form-group">
+                        <label id="labelManualCP">Crude Protein (%)</label>
+                        <input type="number" id="manualCP" step="0.1" placeholder="e.g., 16.5">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelManualMoisture">Moisture (%)</label>
+                        <input type="number" id="manualMoisture" step="0.1" placeholder="e.g., 12.0">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelManualFiber">Crude Fiber (%)</label>
+                        <input type="number" id="manualFiber" step="0.1" placeholder="e.g., 25.0">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelManualFat">Ether Extract/Fat (%)</label>
+                        <input type="number" id="manualFat" step="0.1" placeholder="e.g., 3.5">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelManualAsh">Ash (%)</label>
+                        <input type="number" id="manualAsh" step="0.1" placeholder="e.g., 8.0">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelManualNFE">Nitrogen Free Extract (%)</label>
+                        <input type="number" id="manualNFE" step="0.1" placeholder="e.g., 45.0">
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="analyzeFeed()" style="margin-top:1rem;">
+                    <span>🧪</span> <span id="analyzeText">Analyze Feed Quality</span>
+                </button>
+
+                <div id="feedResultPanel" class="result-panel hidden">
+                    <div class="result-header">
+                        <div>
+                            <h3 id="resultTitle">Analysis Results</h3>
+                            <p id="resultTime" style="color:var(--text-light); font-size:0.85rem;"></p>
+                        </div>
+                        <span class="quality-badge" id="qualityBadge">GOOD</span>
+                    </div>
+                    
+                    <div class="metrics-grid" id="feedMetricsGrid"></div>
+                    
+                    <div class="contamination-alert" id="contaminationAlert">
+                        <strong>⚠️ Contamination Detected!</strong>
+                        <p id="contaminationDetails"></p>
+                    </div>
+
+                    <div class="advisory-box">
+                        <div class="advisory-title">📋 <span id="advisoryTitle">AI Advisory & Recommendations</span></div>
+                        <ul class="advisory-list" id="feedAdvisoryList"></ul>
+                    </div>
+
+                    <div style="margin-top:1rem; display:flex; gap:1rem; flex-wrap:wrap;">
+                        <button class="btn btn-info" onclick="generateQR()">
+                            <span>🔍</span> <span id="qrText">Generate QR Trace</span>
+                        </button>
+                        <button class="btn btn-accent" onclick="saveToHistory()">
+                            <span>💾</span> <span id="saveText">Save to History</span>
+                        </button>
+                        <button class="btn btn-primary" onclick="shareResult()">
+                            <span>📤</span> <span id="shareText">Share Report</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SILAGE TEST TAB -->
+        <div id="silage-test" class="tab-content">
+            <div class="card">
+                <div class="card-title">🌽 <span id="silageTitle">Silage Quality Assessment</span></div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label id="labelSilageFarmer">Farmer Name</label>
+                        <input type="text" id="silageFarmer" placeholder="Enter name">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelSilageLocation">Storage Location</label>
+                        <input type="text" id="silageLocation" placeholder="Enter location">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelSilageType">Silage Type</label>
+                        <select id="silageType">
+                            <option value="maize" data-en="Maize Silage" data-hi="मक्का साइलेज">Maize Silage</option>
+                            <option value="sorghum" data-en="Sorghum Silage" data-hi="ज्वार साइलेज">Sorghum Silage</option>
+                            <option value="oat" data-en="Oat Silage" data-hi="जई साइलेज">Oat Silage</option>
+                            <option value="multi-cut" data-en="Multi-cut Fodder" data-hi="बहु-कटाई चारा">Multi-cut Fodder</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="labelStorageDays">Storage Days</label>
+                        <input type="number" id="storageDays" placeholder="e.g., 45">
+                    </div>
+                </div>
+
+                <div class="sensor-sim" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <h3 id="silageSensorTitle">📡 Silage Monitoring Sensor Array</h3>
+                    <div class="sensor-readings">
+                        <div class="sensor-reading">
+                            <div class="value" id="silagePH">--</div>
+                            <div class="label">pH Level</div>
+                        </div>
+                        <div class="sensor-reading">
+                            <div class="value" id="silageTemp">--</div>
+                            <div class="label">Temperature (°C)</div>
+                        </div>
+                        <div class="sensor-reading">
+                            <div class="value" id="silageMoisture">--</div>
+                            <div class="label">Moisture %</div>
+                        </div>
+                        <div class="sensor-reading">
+                            <div class="value" id="silageAmmonia">--</div>
+                            <div class="label">Ammonia (ppm)</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-accent" onclick="simulateSilageSensors()" style="margin-top:1rem;">
+                        <span>🔬</span> <span id="silageScanText">Read Silage Sensors</span>
+                    </button>
+                </div>
+
+                <div class="form-grid" style="margin-top:1rem;">
+                    <div class="form-group">
+                        <label id="labelManualPH">pH (Manual Entry)</label>
+                        <input type="number" id="manualPH" step="0.1" placeholder="e.g., 4.2">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelManualSilageMoisture">Moisture %</label>
+                        <input type="number" id="manualSilageMoisture" step="0.1" placeholder="e.g., 65">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelLacticAcid">Lactic Acid (%)</label>
+                        <input type="number" id="lacticAcid" step="0.1" placeholder="e.g., 6.5">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelAceticAcid">Acetic Acid (%)</label>
+                        <input type="number" id="aceticAcid" step="0.1" placeholder="e.g., 2.1">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelButyricAcid">Butyric Acid (%)</label>
+                        <input type="number" id="butyricAcid" step="0.1" placeholder="e.g., 0.1">
+                        <small style="color:var(--danger)">High = Spoilage!</small>
+                    </div>
+                    <div class="form-group">
+                        <label id="labelMouldScore">Mould Growth (0-5)</label>
+                        <input type="number" id="mouldScore" min="0" max="5" placeholder="0=none, 5=severe">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:1rem;">
+                    <label id="labelSmellTest">Smell/Odor Test</label>
+                    <select id="smellTest">
+                        <option value="pleasant" data-en="Pleasant (Sweet/Acidic)" data-hi="सुखद (मीठा/अम्लीय)">Pleasant (Sweet/Acidic)</option>
+                        <option value="neutral" data-en="Neutral" data-hi="तटस्थ">Neutral</option>
+                        <option value="musty" data-en="Musty" data-hi="फ़र्शीला">Musty</option>
+                        <option value="rotten" data-en="Rotten/Foul" data-hi="सड़ा हुआ/दुर्गंध">Rotten/Foul</option>
+                        <option value="alcoholic" data-en="Alcoholic/Yeasty" data-hi="शराबी/खमीर जैसा">Alcoholic/Yeasty</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="analyzeSilage()" style="margin-top:1rem;">
+                    <span>🧪</span> <span id="silageAnalyzeText">Analyze Silage Quality</span>
+                </button>
+
+                <div id="silageResultPanel" class="result-panel hidden">
+                    <div class="result-header">
+                        <div>
+                            <h3 id="silageResultTitle">Silage Analysis Results</h3>
+                            <p id="silageResultTime" style="color:var(--text-light); font-size:0.85rem;"></p>
+                        </div>
+                        <span class="quality-badge" id="silageQualityBadge">GOOD</span>
+                    </div>
+
+                    <div style="margin:1rem 0;">
+                        <label style="font-weight:600; font-size:0.9rem;">pH Scale Visualization</label>
+                        <div class="silage-ph-scale">
+                            <div class="ph-segment" style="background:#e74c3c;">3.5</div>
+                            <div class="ph-segment" style="background:#e67e22;">4.0</div>
+                            <div class="ph-segment" style="background:#f39c12;">4.5</div>
+                            <div class="ph-segment" style="background:#27ae60;">5.0</div>
+                            <div class="ph-segment" style="background:#3498db;">5.5</div>
+                            <div class="ph-segment" style="background:#9b59b6;">6.0+</div>
+                            <div class="ph-marker" id="phMarker" style="left:50%"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-light);">
+                            <span>Too Acidic</span>
+                            <span>Optimal</span>
+                            <span>Spoilage Risk</span>
+                        </div>
+                    </div>
+
+                    <div class="metrics-grid" id="silageMetricsGrid"></div>
+
+                    <div class="advisory-box">
+                        <div class="advisory-title">📋 <span id="silageAdvisoryTitle">Silage Management Advisory</span></div>
+                        <ul class="advisory-list" id="silageAdvisoryList"></ul>
+                    </div>
+
+                    <div style="margin-top:1rem; display:flex; gap:1rem; flex-wrap:wrap;">
+                        <button class="btn btn-info" onclick="generateSilageQR()">
+                            <span>🔍</span> <span id="silageQrText">Generate QR Trace</span>
+                        </button>
+                        <button class="btn btn-accent" onclick="saveSilageToHistory()">
+                            <span>💾</span> <span id="silageSaveText">Save to History</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTAMINATION TAB -->
+        <div id="contamination" class="tab-content">
+            <div class="card">
+                <div class="card-title">⚠️ <span id="contamTitle">Rapid Contamination Detection</span></div>
+                
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalTests">0</div>
+                        <div class="stat-label" id="lblTotalTests">Total Tests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="safeCount">0</div>
+                        <div class="stat-label" id="lblSafe">Safe Samples</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="alertCount" style="color:var(--danger);">0</div>
+                        <div class="stat-label" id="lblAlerts">Alerts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="pendingCount">0</div>
+                        <div class="stat-label" id="lblPending">Pending</div>
+                    </div>
+                </div>
+
+                <div class="sensor-sim" style="background: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);">
+                    <h3 id="biosensorTitle">🔬 Biosensor & Toxin Detection Array</h3>
+                    <div class="sensor-readings">
+                        <div class="sensor-reading">
+                            <div class="value" id="aflatoxinB1">--</div>
+                            <div class="label">Aflatoxin B1 (ppb)</div>
+                        </div>
+                        <div class="sensor-reading">
+                            <div class="value" id="ochratoxin">--</div>
+                            <div class="label">Ochratoxin (ppb)</div>
+                        </div>
+                        <div class="sensor-reading">
+                            <div class="value" id="fumonisin">--</div>
+                            <div class="label">Fumonisin (ppm)</div>
+                        </div>
+                        <div class="sensor-reading">
+                            <div class="value" id="zearalenone">--</div>
+                            <div class="label">Zearalenone (ppb)</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-accent" onclick="simulateBiosensors()" style="margin-top:1rem;">
+                        <span>🧫</span> <span id="bioscanText">Run Biosensor Scan</span>
+                    </button>
+                </div>
+
+                <div class="form-grid" style="margin-top:1rem;">
+                    <div class="form-group">
+                        <label id="labelUreaTest">Urea Adulteration Test</label>
+                        <select id="ureaTest">
+                            <option value="negative">Negative (Safe)</option>
+                            <option value="trace">Trace Amounts</option>
+                            <option value="positive">Positive (Adulterated!)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="labelSandTest">Sand/Silica Test</label>
+                        <select id="sandTest">
+                            <option value="none">None Detected</option>
+                            <option value="trace">Trace</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="heavy">Heavy Contamination</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="labelFungalTest">Fungal Growth Test</label>
+                        <select id="fungalTest">
+                            <option value="none">No Growth</option>
+                            <option value="mild">Mild (1-10%)</option>
+                            <option value="moderate">Moderate (10-30%)</option>
+                            <option value="severe">Severe (>30%)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="labelVisualInspect">Visual Inspection</label>
+                        <select id="visualInspect">
+                            <option value="normal">Normal</option>
+                            <option value="discolored">Discolored</option>
+                            <option value="moldy">Visible Mold</option>
+                            <option value="clumpy">Clumpy/Compacted</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="analyzeContamination()" style="margin-top:1rem;">
+                    <span>🧪</span> <span id="contamAnalyzeText">Run Full Contamination Analysis</span>
+                </button>
+
+                <div id="contamResultPanel" class="result-panel hidden" style="border-color:var(--danger); background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);">
+                    <div class="result-header">
+                        <div>
+                            <h3 id="contamResultTitle">Contamination Analysis Report</h3>
+                            <p id="contamResultTime" style="color:var(--text-light); font-size:0.85rem;"></p>
+                        </div>
+                        <span class="quality-badge" id="contamBadge">SAFE</span>
+                    </div>
+
+                    <div id="contamAlertsContainer"></div>
+
+                    <div class="advisory-box" style="border-color:var(--danger);">
+                        <div class="advisory-title" style="color:var(--danger);">⚠️ <span id="contamAdvisoryTitle">Urgent Actions Required</span></div>
+                        <ul class="advisory-list" id="contamAdvisoryList"></ul>
+                    </div>
+
+                    <div style="margin-top:1rem; text-align:center;">
+                        <button class="btn btn-danger" onclick="alertAuthorities()">
+                            <span>🚨</span> <span id="alertAuthText">Alert Authorities</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADVISORY TAB -->
+        <div id="advisory" class="tab-content">
+            <div class="card">
+                <div class="card-title">📋 <span id="advisoryMainTitle">AI-Powered Feed Advisory System</span></div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label id="labelAnimalType">Animal Type</label>
+                        <select id="animalType">
+                            <option value="lactating" data-en="Lactating Cow" data-hi="दुधारू गाय">Lactating Cow</option>
+                            <option value="dry" data-en="Dry Cow" data-hi="सूखी गाय">Dry Cow</option>
+                            <option value="heifer" data-en="Growing Heifer" data-hi="बढ़ती हुई गाय">Growing Heifer</option>
+                            <option value="calf" data-en="Calf" data-hi="बछड़ा">Calf</option>
+                            <option value="buffalo" data-en="Buffalo" data-hi="भैंस">Buffalo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="labelMilkYield">Milk Yield (liters/day)</label>
+                        <input type="number" id="milkYield" placeholder="e.g., 15">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelBodyWeight">Body Weight (kg)</label>
+                        <input type="number" id="bodyWeight" placeholder="e.g., 450">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelStage">Lactation Stage</label>
+                        <select id="lactationStage">
+                            <option value="early" data-en="Early (0-70 days)" data-hi="प्रारंभिक (0-70 दिन)">Early (0-70 days)</option>
+                            <option value="mid" data-en="Mid (70-200 days)" data-hi="मध्य (70-200 दिन)">Mid (70-200 days)</option>
+                            <option value="late" data-en="Late (200+ days)" data-hi="अंतिम (200+ दिन)">Late (200+ days)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:1rem;">
+                    <label id="labelAvailableFeeds">Available Feed Ingredients</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.5rem;">
+                        <label style="display:flex; align-items:center; gap:0.3rem; font-weight:normal; cursor:pointer;">
+                            <input type="checkbox" class="feed-check" value="green-fodder" checked> <span data-en="Green Fodder" data-hi="हरा चारा">Green Fodder</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:0.3rem; font-weight:normal; cursor:pointer;">
+                            <input type="checkbox" class="feed-check" value="dry-fodder" checked> <span data-en="Dry Fodder" data-hi="सूखा चारा">Dry Fodder</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:0.3rem; font-weight:normal; cursor:pointer;">
+                            <input type="checkbox" class="feed-check" value="concentrate" checked> <span data-en="Concentrate" data-hi="केंद्रित">Concentrate</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:0.3rem; font-weight:normal; cursor:pointer;">
+                            <input type="checkbox" class="feed-check" value="mineral-mix"> <span data-en="Mineral Mix" data-hi="खनिज मिश्रण">Mineral Mix</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:0.3rem; font-weight:normal; cursor:pointer;">
+                            <input type="checkbox" class="feed-check" value="bypass-fat"> <span data-en="Bypass Fat" data-hi="बाइपास वसा">Bypass Fat</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:0.3rem; font-weight:normal; cursor:pointer;">
+                            <input type="checkbox" class="feed-check" value="urea"> <span data-en="Urea" data-hi="यूरिया">Urea</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="generateRation()" style="margin-top:1rem;">
+                    <span>🧮</span> <span id="rationText">Generate Optimal Ration</span>
+                </button>
+
+                <div id="rationResultPanel" class="result-panel hidden">
+                    <div class="card-title">🥣 <span id="rationTitle">Optimized Daily Ration</span></div>
+                    <div class="metrics-grid" id="rationMetricsGrid"></div>
+                    
+                    <div class="advisory-box">
+                        <div class="advisory-title">💡 <span id="rationAdvisoryTitle">Feeding Strategy & Tips</span></div>
+                        <ul class="advisory-list" id="rationAdvisoryList"></ul>
+                    </div>
+
+                    <div style="margin-top:1rem; padding:1rem; background:#e3f2fd; border-radius:12px;">
+                        <h4 style="color:#1565c0; margin-bottom:0.5rem;" id="costTitle">💰 Estimated Daily Feed Cost</h4>
+                        <div id="costEstimate" style="font-size:1.3rem; font-weight:700; color:#1565c0;">₹0.00 per animal/day</div>
+                        <p style="font-size:0.85rem; color:var(--text-light); margin-top:0.3rem;" id="costNote">Based on current market rates in your region</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="history" class="tab-content">
+            <div class="card">
+                <div class="card-title">📊 <span id="historyTitle">Test History & Analytics</span></div>
+                
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="histTotal">0</div>
+                        <div class="stat-label" id="lblHistTotal">Total Tests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color:var(--success);" id="histPass">0</div>
+                        <div class="stat-label" id="lblHistPass">Passed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color:var(--warning);" id="histWarn">0</div>
+                        <div class="stat-label" id="lblHistWarn">Warning</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color:var(--danger);" id="histFail">0</div>
+                        <div class="stat-label" id="lblHistFail">Failed</div>
+                    </div>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="history-table" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th id="thDate">Date</th>
+                                <th id="thSample">Sample ID</th>
+                                <th id="thType">Type</th>
+                                <th id="thFarmer">Farmer</th>
+                                <th id="thQuality">Quality</th>
+                                <th id="thStatus">Status</th>
+                                <th id="thActions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align:center; color:var(--text-light);" id="noDataMsg">No test records found. Run a test to see history.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:1rem; display:flex; gap:1rem; flex-wrap:wrap;">
+                    <button class="btn btn-info" onclick="exportData()">
+                        <span>📥</span> <span id="exportText">Export CSV</span>
+                    </button>
+                    <button class="btn btn-danger" onclick="clearHistory()">
+                        <span>🗑️</span> <span id="clearText">Clear History</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRACEABILITY TAB -->
+        <div id="traceability" class="tab-content">
+            <div class="card">
+                <div class="card-title">🔍 <span id="traceTitle">QR-Based Feed Traceability</span></div>
+                
+                <div class="qr-section">
+                    <div style="max-width:400px; margin:0 auto;">
+                        <div class="form-group">
+                            <label id="labelQRInput">Enter Sample ID or Scan QR</label>
+                            <input type="text" id="qrInput" placeholder="e.g., FD-2026-0001" style="text-align:center; font-size:1.1rem;">
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="lookupTraceability()" style="margin-bottom:1rem;">
+                            <span>🔍</span> <span id="lookupText">Lookup Sample</span>
+                        </button>
+                        
+                        <div id="qrDisplayArea">
+                            <div class="qr-code" id="qrCodeDisplay">
+                                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" id="qrSvg">
+                                    <!-- QR Code pattern will be generated here -->
+                                    <rect width="200" height="200" fill="white"/>
+                                    <g fill="black">
+                                        <!-- Position detection patterns -->
+                                        <rect x="10" y="10" width="50" height="50"/>
+                                        <rect x="15" y="15" width="40" height="40" fill="white"/>
+                                        <rect x="20" y="20" width="30" height="30"/>
+                                        <rect x="140" y="10" width="50" height="50"/>
+                                        <rect x="145" y="15" width="40" height="40" fill="white"/>
+                                        <rect x="150" y="20" width="30" height="30"/>
+                                        <rect x="10" y="140" width="50" height="50"/>
+                                        <rect x="15" y="145" width="40" height="40" fill="white"/>
+                                        <rect x="20" y="150" width="30" height="30"/>
+                                        <!-- Data modules (simplified pattern) -->
+                                        <rect x="70" y="10" width="10" height="10"/>
+                                        <rect x="90" y="10" width="10" height="10"/>
+                                        <rect x="110" y="10" width="10" height="10"/>
+                                        <rect x="70" y="30" width="10" height="10"/>
+                                        <rect x="100" y="30" width="10" height="10"/>
+                                        <rect x="120" y="30" width="10" height="10"/>
+                                        <rect x="70" y="50" width="10" height="10"/>
+                                        <rect x="90" y="50" width="10" height="10"/>
+                                        <rect x="110" y="50" width="10" height="10"/>
+                                        <rect x="10" y="70" width="10" height="10"/>
+                                        <rect x="30" y="70" width="10" height="10"/>
+                                        <rect x="50" y="70" width="10" height="10"/>
+                                        <rect x="10" y="90" width="10" height="10"/>
+                                        <rect x="40" y="90" width="10" height="10"/>
+                                        <rect x="10" y="110" width="10" height="10"/>
+                                        <rect x="30" y="110" width="10" height="10"/>
+                                        <rect x="50" y="110" width="10" height="10"/>
+                                        <rect x="70" y="70" width="10" height="10"/>
+                                        <rect x="90" y="70" width="10" height="10"/>
+                                        <rect x="110" y="70" width="10" height="10"/>
+                                        <rect x="130" y="70" width="10" height="10"/>
+                                        <rect x="70" y="90" width="10" height="10"/>
+                                        <rect x="100" y="90" width="10" height="10"/>
+                                        <rect x="120" y="90" width="10" height="10"/>
+                                        <rect x="140" y="90" width="10" height="10"/>
+                                        <rect x="70" y="110" width="10" height="10"/>
+                                        <rect x="90" y="110" width="10" height="10"/>
+                                        <rect x="110" y="110" width="10" height="10"/>
+                                        <rect x="130" y="110" width="10" height="10"/>
+                                        <rect x="150" y="70" width="10" height="10"/>
+                                        <rect x="170" y="70" width="10" height="10"/>
+                                        <rect x="160" y="90" width="10" height="10"/>
+                                        <rect x="150" y="110" width="10" height="10"/>
+                                        <rect x="170" y="110" width="10" height="10"/>
+                                        <rect x="70" y="130" width="10" height="10"/>
+                                        <rect x="90" y="130" width="10" height="10"/>
+                                        <rect x="110" y="130" width="10" height="10"/>
+                                        <rect x="70" y="150" width="10" height="10"/>
+                                        <rect x="100" y="150" width="10" height="10"/>
+                                        <rect x="120" y="150" width="10" height="10"/>
+                                        <rect x="70" y="170" width="10" height="10"/>
+                                        <rect x="90" y="170" width="10" height="10"/>
+                                        <rect x="110" y="170" width="10" height="10"/>
+                                        <rect x="140" y="130" width="10" height="10"/>
+                                        <rect x="160" y="130" width="10" height="10"/>
+                                        <rect x="180" y="130" width="10" height="10"/>
+                                        <rect x="150" y="150" width="10" height="10"/>
+                                        <rect x="170" y="150" width="10" height="10"/>
+                                        <rect x="140" y="170" width="10" height="10"/>
+                                        <rect x="160" y="170" width="10" height="10"/>
+                                        <rect x="180" y="170" width="10" height="10"/>
+                                    </g>
+                                </svg>
+                            </div>
+                            <p style="font-weight:600; color:var(--primary);" id="qrSampleId">Sample: FD-2026-0001</p>
+                            <p style="font-size:0.85rem; color:var(--text-light);" id="qrStatus">Status: Test Pending</p>
+                        </div>
+
+                        <div id="traceDetails" class="hidden" style="margin-top:1.5rem; text-align:left;">
+                            <div class="card" style="background:#f8fff8;">
+                                <div class="card-title">📋 <span id="traceDetailTitle">Traceability Details</span></div>
+                                <div id="traceContent"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="offline-badge" id="offlineBadge">
+        📴 Offline Mode - Data saved locally
+    </div>
+
+    <script>
+        // ==================== STATE MANAGEMENT ====================
+        let currentLang = 'en';
+        let feedType = 'green-fodder';
+        let testHistory = [];
+        let currentFeedResult = null;
+        let currentSilageResult = null;
+        let currentContamResult = null;
+        let sampleCounter = 1;
+
+        // ==================== TRANSLATIONS ====================
+        const translations = {
+            en: {
+                appTitle: '🐄 DairyFeed AI',
+                appSubtitle: 'Smart AI-Enabled Rapid Feed & Silage Quality Testing',
+                feedTestTitle: 'Cattle Feed Quality Test',
+                silageTitle: 'Silage Quality Assessment',
+                contamTitle: 'Rapid Contamination Detection',
+                advisoryMainTitle: 'AI-Powered Feed Advisory System',
+                historyTitle: 'Test History & Analytics',
+                traceTitle: 'QR-Based Feed Traceability',
+                feedTest: 'Feed Test',
+                silageTest: 'Silage Test',
+                contamination: 'Contamination',
+                advisory: 'Advisory',
+                history: 'History',
+                traceability: 'Trace QR',
+                sensorSimTitle: '📡 Simulating NIR Spectroscopy Sensor',
+                sensorSimDesc: 'Real-time spectral analysis simulation',
+                scanText: 'Start NIR Scan',
+                analyzeText: 'Analyze Feed Quality',
+                silageScanText: 'Read Silage Sensors',
+                silageAnalyzeText: 'Analyze Silage Quality',
+                bioscanText: 'Run Biosensor Scan',
+                contamAnalyzeText: 'Run Full Contamination Analysis',
+                rationText: 'Generate Optimal Ration',
+                qrText: 'Generate QR Trace',
+                saveText: 'Save to History',
+                shareText: 'Share Report',
+                silageQrText: 'Generate QR Trace',
+                silageSaveText: 'Save to History',
+                lookupText: 'Lookup Sample',
+                exportText: 'Export CSV',
+                clearText: 'Clear History',
+                alertAuthText: 'Alert Authorities',
+                resultTitle: 'Analysis Results',
+                silageResultTitle: 'Silage Analysis Results',
+                contamResultTitle: 'Contamination Analysis Report',
+                advisoryTitle: 'AI Advisory & Recommendations',
+                silageAdvisoryTitle: 'Silage Management Advisory',
+                contamAdvisoryTitle: 'Urgent Actions Required',
+                rationTitle: 'Optimized Daily Ration',
+                rationAdvisoryTitle: 'Feeding Strategy & Tips',
+                costTitle: '💰 Estimated Daily Feed Cost',
+                costNote: 'Based on current market rates in your region',
+                traceDetailTitle: 'Traceability Details',
+                noDataMsg: 'No test records found. Run a test to see history.',
+                labelFarmerName: 'Farmer Name',
+                labelLocation: 'Location/Village',
+                labelSampleId: 'Sample ID (Auto)',
+                labelBatchNo: 'Batch Number',
+                labelImage: 'Feed Sample Image (Computer Vision Analysis)',
+                uploadText: 'Click to upload or capture feed image',
+                labelManualCP: 'Crude Protein (%)',
+                labelManualMoisture: 'Moisture (%)',
+                labelManualFiber: 'Crude Fiber (%)',
+                labelManualFat: 'Ether Extract/Fat (%)',
+                labelManualAsh: 'Ash (%)',
+                labelManualNFE: 'Nitrogen Free Extract (%)',
+                labelSilageFarmer: 'Farmer Name',
+                labelSilageLocation: 'Storage Location',
+                labelSilageType: 'Silage Type',
+                labelStorageDays: 'Storage Days',
+                labelManualPH: 'pH (Manual Entry)',
+                labelManualSilageMoisture: 'Moisture %',
+                labelLacticAcid: 'Lactic Acid (%)',
+                labelAceticAcid: 'Acetic Acid (%)',
+                labelButyricAcid: 'Butyric Acid (%)',
+                labelMouldScore: 'Mould Growth (0-5)',
+                labelSmellTest: 'Smell/Odor Test',
+                labelUreaTest: 'Urea Adulteration Test',
+                labelSandTest: 'Sand/Silica Test',
+                labelFungalTest: 'Fungal Growth Test',
+                labelVisualInspect: 'Visual Inspection',
+                labelAnimalType: 'Animal Type',
+                labelMilkYield: 'Milk Yield (liters/day)',
+                labelBodyWeight: 'Body Weight (kg)',
+                labelStage: 'Lactation Stage',
+                labelAvailableFeeds: 'Available Feed Ingredients',
+                labelQRInput: 'Enter Sample ID or Scan QR',
+                totalTests: 'Total Tests',
+                safe: 'Safe Samples',
+                alerts: 'Alerts',
+                pending: 'Pending',
+                histTotal: 'Total Tests',
+                histPass: 'Passed',
+                histWarn: 'Warning',
+                histFail: 'Failed',
+                thDate: 'Date',
+                thSample: 'Sample ID',
+                thType: 'Type',
+                thFarmer: 'Farmer',
+                thQuality: 'Quality',
+                thStatus: 'Status',
+                thActions: 'Actions'
+            },
+            hi: {
+                appTitle: '🐄 डेयरीफीड एआई',
+                appSubtitle: 'स्मार्ट एआई-सक्षम तेज़ फ़ीड और साइलेज गुणवत्ता परीक्षण',
+                feedTestTitle: 'पशु चारा गुणवत्ता परीक्षण',
+                silageTitle: 'साइलेज गुणवत्ता मूल्यांकन',
+                contamTitle: 'तेज़ी से संदूषण पहचान',
+                advisoryMainTitle: 'एआई-संचालित चारा सलाहकार प्रणाली',
+                historyTitle: 'परीक्षण इतिहास और विश्लेषण',
+                traceTitle: 'क्यूआर-आधारित चारा ट्रेसेबिलिटी',
+                feedTest: 'चारा परीक्षण',
+                silageTest: 'साइलेज परीक्षण',
+                contamination: 'संदूषण',
+                advisory: 'सलाह',
+                history: 'इतिहास',
+                traceability: 'क्यूआर ट्रेस',
+                sensorSimTitle: '📡 एनआईआर स्पेक्ट्रोस्कोपी सेंसर अनुकरण',
+                sensorSimDesc: 'वास्तविक समय स्पेक्ट्रल विश्लेषण अनुकरण',
+                scanText: 'एनआईआर स्कैन शुरू करें',
+                analyzeText: 'चारा गुणवत्ता का विश्लेषण करें',
+                silageScanText: 'साइलेज सेंसर पढ़ें',
+                silageAnalyzeText: 'साइलेज गुणवत्ता का विश्लेषण करें',
+                bioscanText: 'बायोसेंसर स्कैन चलाएं',
+                contamAnalyzeText: 'पूर्ण संदूषण विश्लेषण चलाएं',
+                rationText: 'इष्टतम राशन बनाएं',
+                qrText: 'क्यूआर ट्रेस बनाएं',
+                saveText: 'इतिहास में सहेजें',
+                shareText: 'रिपोर्ट साझा करें',
+                silageQrText: 'क्यूआर ट्रेस बनाएं',
+                silageSaveText: 'इतिहास में सहेजें',
+                lookupText: 'नमूना खोजें',
+                exportText: 'सीएसवी निर्यात',
+                clearText: 'इतिहास साफ़ करें',
+                alertAuthText: 'अधिकारियों को सचेत करें',
+                resultTitle: 'विश्लेषण परिणाम',
+                silageResultTitle: 'साइलेज विश्लेषण परिणाम',
+                contamResultTitle: 'संदूषण विश्लेषण रिपोर्ट',
+                advisoryTitle: 'एआई सलाह और सिफारिशें',
+                silageAdvisoryTitle: 'साइलेज प्रबंधन सलाह',
+                contamAdvisoryTitle: 'तत्काल कार्रवाई आवश्यक',
+                rationTitle: 'इष्टतम दैनिक राशन',
+                rationAdvisoryTitle: 'खिलाने की रणनीति और सुझाव',
+                costTitle: '💰 अनुमानित दैनिक चारा लागत',
+                costNote: 'आपके क्षेत्र में वर्तमान बाजार दरों पर आधारित',
+                traceDetailTitle: 'ट्रेसेबिलिटी विवरण',
+                noDataMsg: 'कोई परीक्षण रिकॉर्ड नहीं मिला। इतिहास देखने के लिए परीक्षण चलाएं।',
+                labelFarmerName: 'किसान का नाम',
+                labelLocation: 'स्थान/गाँव',
+                labelSampleId: 'नमूना आईडी (स्वचालित)',
+                labelBatchNo: 'बैच नंबर',
+                labelImage: 'चारा नमूना छवि (कंप्यूटर विज़न विश्लेषण)',
+                uploadText: 'चारा छवि अपलोड या कैप्चर करने के लिए क्लिक करें',
+                labelManualCP: 'क्रूड प्रोटीन (%)',
+                labelManualMoisture: 'नमी (%)',
+                labelManualFiber: 'क्रूड फाइबर (%)',
+                labelManualFat: 'ईथर एक्सट्रैक्ट/वसा (%)',
+                labelManualAsh: 'राख (%)',
+                labelManualNFE: 'नाइट्रोजन मुक्त अर्क (%)',
+                labelSilageFarmer: 'किसान का नाम',
+                labelSilageLocation: 'भंडारण स्थान',
+                labelSilageType: 'साइलेज का प्रकार',
+                labelStorageDays: 'भंडारण दिन',
+                labelManualPH: 'pH (मैनुअल एंट्री)',
+                labelManualSilageMoisture: 'नमी %',
+                labelLacticAcid: 'लैक्टिक एसिड (%)',
+                labelAceticAcid: 'एसिटिक एसिड (%)',
+                labelButyricAcid: 'ब्यूटिरिक एसिड (%)',
+                labelMouldScore: 'फफूंद वृद्धि (0-5)',
+                labelSmellTest: 'गंध परीक्षण',
+                labelUreaTest: 'यूरिया मिलावट परीक्षण',
+                labelSandTest: 'रेत/सिलिका परीक्षण',
+                labelFungalTest: 'फंगल वृद्धि परीक्षण',
+                labelVisualInspect: 'दृश्य निरीक्षण',
+                labelAnimalType: 'पशु प्रकार',
+                labelMilkYield: 'दूध उत्पादन (लीटर/दिन)',
+                labelBodyWeight: 'शरीर का वजन (किलो)',
+                labelStage: 'दुग्धावस्था चरण',
+                labelAvailableFeeds: 'उपलब्ध चारा सामग्री',
+                labelQRInput: 'नमूना आईडी दर्ज करें या क्यूआर स्कैन करें',
+                totalTests: 'कुल परीक्षण',
+                safe: 'सुरक्षित नमूने',
+                alerts: 'चेतावनियां',
+                pending: 'लंबित',
+                histTotal: 'कुल परीक्षण',
+                histPass: 'उत्तीर्ण',
+                histWarn: 'चेतावनी',
+                histFail: 'असफल',
+                thDate: 'तारीख',
+                thSample: 'नमूना आईडी',
+                thType: 'प्रकार',
+                thFarmer: 'किसान',
+                thQuality: 'गुणवत्ता',
+                thStatus: 'स्थिति',
+                thActions: 'कार्रवाई'
+            }
+        };
+
+        // ==================== LANGUAGE TOGGLE ====================
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'hi' : 'en';
+            document.getElementById('langText').textContent = currentLang === 'en' ? 'हिंदी' : 'English';
+            applyTranslations();
+        }
+
+        function applyTranslations() {
+            const t = translations[currentLang];
+            for (const [key, value] of Object.entries(t)) {
+                const el = document.getElementById(key);
+                if (el) el.textContent = value;
+            }
+            // Update tab labels
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                const labelSpan = tab.querySelector('.tab-label');
+                if (labelSpan && labelSpan.id) {
+                    const transKey = labelSpan.id.replace('Tab', '').toLowerCase();
+                    if (t[transKey]) labelSpan.textContent = t[transKey];
+                }
+            });
+            // Update data-en/hi elements
+            document.querySelectorAll('[data-en][data-hi]').forEach(el => {
+                el.textContent = el.getAttribute('data-' + currentLang);
+            });
+        }
+
+        // ==================== TAB NAVIGATION ====================
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        }
+
+        // ==================== FEED TYPE SELECTION ====================
+        function selectFeedType(el, type) {
+            document.querySelectorAll('.feed-type-option').forEach(o => o.classList.remove('selected'));
+            el.classList.add('selected');
+            feedType = type;
+        }
+
+        // ==================== NIR SENSOR SIMULATION ====================
+        function simulateNIRScan() {
+            const btn = document.getElementById('btnScan');
+            const progressBar = document.getElementById('scanProgressBar');
+            const progress = document.getElementById('scanProgress');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Scanning...';
+            progressBar.style.display = 'block';
+            
+            let width = 0;
+            const interval = setInterval(() => {
+                width += 5;
+                progress.style.width = width + '%';
+                if (width >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        // Generate realistic values based on feed type
+                        const baseValues = {
+                            'green-fodder': { cp: 12, moisture: 75, fiber: 28, energy: 1.8 },
+                            'dry-fodder': { cp: 5, moisture: 12, fiber: 32, energy: 1.5 },
+                            'concentrate': { cp: 22, moisture: 11, fiber: 12, energy: 3.2 },
+                            'mineral-mix': { cp: 0, moisture: 5, fiber: 2, energy: 0.5 },
+                            'compound-feed': { cp: 18, moisture: 13, fiber: 18, energy: 2.8 }
+                        };
+                        const base = baseValues[feedType] || baseValues['compound-feed'];
+                        
+                        // Add some random variation
+                        document.getElementById('nirCP').textContent = (base.cp + (Math.random() * 4 - 2)).toFixed(1);
+                        document.getElementById('nirMoisture').textContent = (base.moisture + (Math.random() * 6 - 3)).toFixed(1);
+                        document.getElementById('nirFiber').textContent = (base.fiber + (Math.random() * 4 - 2)).toFixed(1);
+                        document.getElementById('nirEnergy').textContent = (base.energy + (Math.random() * 0.4 - 0.2)).toFixed(2);
+                        
+                        // Auto-fill manual fields
+                        document.getElementById('manualCP').value = document.getElementById('nirCP').textContent;
+                        document.getElementById('manualMoisture').value = document.getElementById('nirMoisture').textContent;
+                        document.getElementById('manualFiber').value = document.getElementById('nirFiber').textContent;
+                        
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>🔬</span> <span id="scanText">' + (currentLang === 'en' ? 'Re-scan' : 'फिर स्कैन करें') + '</span>';
+                        progressBar.style.display = 'none';
+                        applyTranslations();
+                    }, 500);
+                }
+            }, 50);
+        }
+
+        // ==================== IMAGE UPLOAD & CV SIMULATION ====================
+        function handleImageUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                    document.getElementById('imageUpload').classList.add('has-image');
+                    
+                    // Simulate computer vision analysis
+                    setTimeout(() => {
+                        const analyses = [
+                            '✅ Color analysis: Normal greenish-yellow',
+                            '✅ Texture: Proper leaf-to-stem ratio',
+                            '⚠️ Slight wilting detected (acceptable)',
+                            '✅ No visible mold spots'
+                        ];
+                        const randomAnalysis = analyses[Math.floor(Math.random() * analyses.length)];
+                        document.getElementById('cvResult').textContent = 
+                            currentLang === 'en' ? 'CV Analysis: ' + randomAnalysis : 'सीवी विश्लेषण: ' + randomAnalysis;
+                    }, 1000);
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // ==================== FEED ANALYSIS ENGINE ====================
+        function analyzeFeed() {
+            const cp = parseFloat(document.getElementById('manualCP').value) || 0;
+            const moisture = parseFloat(document.getElementById('manualMoisture').value) || 0;
+            const fiber = parseFloat(document.getElementById('manualFiber').value) || 0;
+            const fat = parseFloat(document.getElementById('manualFat').value) || 0;
+            const ash = parseFloat(document.getElementById('manualAsh').value) || 0;
+            const nfe = parseFloat(document.getElementById('manualNFE').value) || 0;
+            
+            if (!cp && !moisture) {
+                alert(currentLang === 'en' ? 'Please enter at least CP and Moisture values' : 'कृपया कम से कम सीपी और नमी मान दर्ज करें');
+                return;
+            }
+
+            // Calculate derived metrics
+            const totalNutrients = cp + fiber + fat + ash + nfe;
+            const dm = 100 - moisture;
+            const dmBasisCP = cp * 100 / dm;
+            const tdN = 100 - (fiber * 0.75); // Simplified TDN
+            const me = (tdN * 0.82) / 4.184; // Simplified ME calculation
+            const dcp = cp * 0.65; // Digestible crude protein estimate
+
+            // Quality scoring
+            let qualityScore = 0;
+            let alerts = [];
+            
+            // CP evaluation
+            let cpStatus = 'normal';
+            if (feedType === 'concentrate' || feedType === 'compound-feed') {
+                if (cp < 16) { cpStatus = 'low'; qualityScore -= 20; alerts.push(currentLang === 'en' ? 'Protein below standard for concentrate feed' : 'केंद्रित चारे के लिए प्रोटीन मानक से कम'); }
+                else if (cp > 24) { cpStatus = 'high'; }
+                else { qualityScore += 25; }
+            } else {
+                if (cp < 8) { cpStatus = 'low'; qualityScore -= 10; }
+                else { qualityScore += 20; }
+            }
+
+            // Moisture evaluation
+            let moistureStatus = 'normal';
+            if (moisture > 15) { moistureStatus = 'high'; qualityScore -= 15; alerts.push(currentLang === 'en' ? 'High moisture - mold risk' : 'अधिक नमी - फफूंद का खतरा'); }
+            else if (moisture < 8) { moistureStatus = 'low'; }
+            else { qualityScore += 20; }
+
+            // Fiber evaluation
+            let fiberStatus = 'normal';
+            if (fiber > 30) { fiberStatus = 'high'; qualityScore -= 10; alerts.push(currentLang === 'en' ? 'High fiber reduces digestibility' : 'अधिक फाइबर पाचनशक्ति कम करता है'); }
+            else { qualityScore += 15; }
+
+            // Energy evaluation
+            let energyStatus = 'normal';
+            if (me < 2.0) { energyStatus = 'low'; qualityScore -= 15; alerts.push(currentLang === 'en' ? 'Low energy - supplementation needed' : 'कम ऊर्जा - पूरक आवश्यक'); }
+            else { qualityScore += 20; }
+
+            // Mineral check (simulated)
+            const ca = (Math.random() * 1.5 + 0.3).toFixed(2);
+            const p = (Math.random() * 0.8 + 0.2).toFixed(2);
+            let mineralStatus = 'adequate';
+            if (parseFloat(ca) < 0.5 || parseFloat(p) < 0.2) {
+                mineralStatus = 'deficient';
+                qualityScore -= 10;
+                alerts.push(currentLang === 'en' ? 'Calcium/Phosphorus deficiency detected' : 'कैल्शियम/फॉस्फोरस की कमी पहचानी गई');
+            } else { qualityScore += 20; }
+
+            // Final quality determination
+            let quality, badgeClass;
+            if (qualityScore >= 80) { quality = 'EXCELLENT'; badgeClass = 'quality-excellent'; }
+            else if (qualityScore >= 60) { quality = 'GOOD'; badgeClass = 'quality-good'; }
+            else if (qualityScore >= 40) { quality = 'FAIR'; badgeClass = 'quality-poor'; }
+            else { quality = 'POOR'; badgeClass = 'quality-danger'; }
+
+            currentFeedResult = {
+                id: 'FD-2026-' + String(sampleCounter).padStart(4, '0'),
+                type: 'feed',
+                feedType: feedType,
+                farmer: document.getElementById('farmerName').value || 'Unknown',
+                location: document.getElementById('location').value || 'Unknown',
+                date: new Date().toLocaleString(),
+                cp, moisture, fiber, fat, ash, nfe,
+                dm, dmBasisCP, tdN, me, dcp, ca, p,
+                qualityScore, quality, alerts,
+                cpStatus, moistureStatus, fiberStatus, energyStatus, mineralStatus
+            };
+
+            // Display results
+            document.getElementById('feedResultPanel').classList.remove('hidden');
+            document.getElementById('resultTime').textContent = currentFeedResult.date;
+            const badge = document.getElementById('qualityBadge');
+            badge.textContent = quality;
+            badge.className = 'quality-badge ' + badgeClass;
+
+            const metricsHtml = `
+                <div class="metric-card">
+                    <div class="metric-name">Crude Protein</div>
+                    <div class="metric-value">${cp.toFixed(1)}%</div>
+                    <div class="metric-status" style="color:${cpStatus==='low'?'var(--danger)':'var(--success)'}">${cpStatus.toUpperCase()}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">Dry Matter</div>
+                    <div class="metric-value">${dm.toFixed(1)}%</div>
+                    <div class="metric-status">BASIS</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">TDN (Est.)</div>
+                    <div class="metric-value">${tdN.toFixed(1)}%</div>
+                    <div class="metric-status">DIGESTIBLE</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">ME Energy</div>
+                    <div class="metric-value">${me.toFixed(2)} Mcal/kg</div>
+                    <div class="metric-status" style="color:${energyStatus==='low'?'var(--danger)':'var(--success)'}">${energyStatus.toUpperCase()}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">Digestible CP</div>
+                    <div class="metric-value">${dcp.toFixed(1)}%</div>
+                    <div class="metric-status">AVAILABLE</div>
+                </div>
+                <div class="metric-card ${mineralStatus==='deficient'?'alert':''}">
+                    <div class="metric-name">Ca:P Ratio</div>
+                    <div class="metric-value">${ca}:${p}</div>
+                    <div class="metric-status" style="color:${mineralStatus==='deficient'?'var(--danger)':'var(--success)'}">${mineralStatus.toUpperCase()}</div>
+                </div>
+            `;
+            document.getElementById('feedMetricsGrid').innerHTML = metricsHtml;
+
+            // Contamination alert
+            const contamAlert = document.getElementById('contaminationAlert');
+            if (alerts.length > 0) {
+                contamAlert.classList.add('show');
+                document.getElementById('contaminationDetails').textContent = alerts.join('; ');
+            } else {
+                contamAlert.classList.remove('show');
+            }
+
+            // Advisory generation
+            const advisories = generateFeedAdvisories(currentFeedResult);
+            document.getElementById('feedAdvisoryList').innerHTML = advisories.map(a => 
+                `<li><span style="color:var(--primary); font-size:1.2rem;">✓</span> ${a}</li>`
+            ).join('');
+
+            sampleCounter++;
+            document.getElementById('sampleId').value = 'FD-2026-' + String(sampleCounter).padStart(4, '0');
+        }
+
+        function generateFeedAdvisories(result) {
+            const adv = [];
+            const lang = currentLang;
+            
+            if (result.quality === 'EXCELLENT') {
+                adv.push(lang === 'en' ? 'Feed quality is excellent - maintain current sourcing' : 'चारा गुणवत्ता उत्कृष्ट है - वर्तमान स्रोत बनाए रखें');
+            }
+            if (result.cpStatus === 'low') {
+                adv.push(lang === 'en' ? 'Add protein supplement: cottonseed cake or groundnut cake @ 1-2 kg/day' : 'प्रोटीन पूरक जोड़ें: कपासseed खली या मूंगफली खली @ 1-2 किलो/दिन');
+                adv.push(lang === 'en' ? 'Consider urea-molasses mineral block for sustained protein' : 'निरंतर प्रोटीन के लिए यूरिया-गुड़ खनिज ब्लॉक पर विचार करें');
+            }
+            if (result.moistureStatus === 'high') {
+                adv.push(lang === 'en' ? 'Dry feed before storage; moisture >15% risks aflatoxin growth' : 'भंडारण से पहले चारा सुखाएं; नमी >15% पर एफ्लाटॉक्सिन वृद्धि का खतरा');
+                adv.push(lang === 'en' ? 'Ensure proper ventilation in storage area' : 'भंडारण क्षेत्र में उचित वेंटिलेशन सुनिश्चित करें');
+            }
+            if (result.fiberStatus === 'high') {
+                adv.push(lang === 'en' ? 'High fiber reduces intake - chop fodder to 2-3 cm length' : 'अधिक फाइबर से खपत कम होती है - चारे को 2-3 सेमी लंबाई में काटें');
+            }
+            if (result.energyStatus === 'low') {
+                adv.push(lang === 'en' ? 'Add energy source: crushed maize or jowar @ 2-3 kg/day' : 'ऊर्जा स्रोत जोड़ें: कुचला मक्का या ज्वार @ 2-3 किलो/दिन');
+            }
+            if (result.mineralStatus === 'deficient') {
+                adv.push(lang === 'en' ? 'Provide mineral mixture @ 50g/day per animal' : 'प्रति पशु 50 ग्राम/दिन खनिज मिश्रण उपलब्ध कराएं');
+                adv.push(lang === 'en' ? 'Ensure free access to mineral-rich salt licks' : 'खनिज युक्त नमक लicks की स्वतंत्र पहुंच सुनिश्चित करें');
+            }
+            
+            // General recommendations
+            adv.push(lang === 'en' ? 'Test feed every 15 days for consistent quality monitoring' : 'सुसंगत गुणवत्ता निगरानी के लिए हर 15 दिनों में चारा परीक्षण करें');
+            adv.push(lang === 'en' ? 'Store feed on pallets, away from walls, with 30cm gap from floor' : 'चारे को पैलेट पर, दीवारों से दूर, फर्श से 30 सेमी की दूरी पर रखें');
+            
+            return adv;
+        }
+
+        // ==================== SILAGE ANALYSIS ====================
+        function simulateSilageSensors() {
+            const btn = document.getElementById('silageScanText').parentElement;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Reading...';
+            
+            setTimeout(() => {
+                document.getElementById('silagePH').textContent = (3.8 + Math.random() * 1.5).toFixed(1);
+                document.getElementById('silageTemp').textContent = (22 + Math.random() * 8).toFixed(1);
+                document.getElementById('silageMoisture').textContent = (60 + Math.random() * 15).toFixed(1);
+                document.getElementById('silageAmmonia').textContent = Math.floor(Math.random() * 50);
+                
+                document.getElementById('manualPH').value = document.getElementById('silagePH').textContent;
+                document.getElementById('manualSilageMoisture').value = document.getElementById('silageMoisture').textContent;
+                
+                btn.disabled = false;
+                btn.innerHTML = '<span>🔬</span> <span id="silageScanText">' + (currentLang === 'en' ? 'Re-read Sensors' : 'सेंसर फिर पढ़ें') + '</span>';
+                applyTranslations();
+            }, 1500);
+        }
+
+        function analyzeSilage() {
+            const ph = parseFloat(document.getElementById('manualPH').value) || 4.0;
+            const moisture = parseFloat(document.getElementById('manualSilageMoisture').value) || 65;
+            const lactic = parseFloat(document.getElementById('lacticAcid').value) || 6;
+            const acetic = parseFloat(document.getElementById('aceticAcid').value) || 2;
+            const butyric = parseFloat(document.getElementById('butyricAcid').value) || 0.1;
+            const mould = parseInt(document.getElementById('mouldScore').value) || 0;
+            const smell = document.getElementById('smellTest').value;
+            const days = parseInt(document.getElementById('storageDays').value) || 45;
+
+            // pH evaluation
+            let phQuality, phColor;
+            if (ph < 3.5) { phQuality = 'Too Acidic'; phColor = '#e74c3c'; }
+            else if (ph <= 4.5) { phQuality = 'Optimal'; phColor = '#27ae60'; }
+            else if (ph <= 5.0) { phQuality = 'Acceptable'; phColor = '#f39c12'; }
+            else { phQuality = 'Spoilage Risk'; phColor = '#e74c3c'; }
+
+            // Fermentation quality
+            let fermentationScore = 0;
+            if (lactic > 6) fermentationScore += 30;
+            else if (lactic > 4) fermentationScore += 20;
+            else fermentationScore += 10;
+            
+            if (acetic < 3) fermentationScore += 20;
+            else fermentationScore += 10;
+            
+            if (butyric < 0.5) fermentationScore += 25;
+            else fermentationScore -= 15; // Clostridial fermentation!
+            
+            if (ph <= 4.5) fermentationScore += 25;
+            else fermentationScore += 10;
+
+            // Moisture
+            let moistQuality;
+            if (moisture >= 60 && moisture <= 70) { moistQuality = 'Optimal'; fermentationScore += 15; }
+            else if (moisture > 70) { moistQuality = 'Wet - Seepage Risk'; fermentationScore -= 10; }
+            else { moistQuality = 'Dry - Poor Packing'; fermentationScore -= 5; }
+
+            // Mould
+            let mouldQuality;
+            if (mould === 0) { mouldQuality = 'None'; fermentationScore += 15; }
+            else if (mould <= 2) { mouldQuality = 'Trace'; fermentationScore += 5; }
+            else { mouldQuality = 'Significant'; fermentationScore -= 20; }
+
+            // Smell
+            let smellQuality;
+            if (smell === 'pleasant') { smellQuality = 'Good'; fermentationScore += 10; }
+            else if (smell === 'neutral') { smellQuality = 'Acceptable'; fermentationScore += 5; }
+            else if (smell === 'alcoholic') { smellQuality = 'Yeasty'; fermentationScore -= 5; }
+            else { smellQuality = 'Spoiled'; fermentationScore -= 25; }
+
+            // Final quality
+            let quality, badgeClass;
+            if (fermentationScore >= 90) { quality = 'EXCELLENT'; badgeClass = 'quality-excellent'; }
+            else if (fermentationScore >= 70) { quality = 'GOOD'; badgeClass = 'quality-good'; }
+            else if (fermentationScore >= 50) { quality = 'FAIR'; badgeClass = 'quality-poor'; }
+            else { quality = 'POOR'; badgeClass = 'quality-danger'; }
+
+            currentSilageResult = {
+                id: 'SL-2026-' + String(sampleCounter).padStart(4, '0'),
+                type: 'silage',
+                farmer: document.getElementById('silageFarmer').value || 'Unknown',
+                location: document.getElementById('silageLocation').value || 'Unknown',
+                silageType: document.getElementById('silageType').value,
+                date: new Date().toLocaleString(),
+                ph, moisture, lactic, acetic, butyric, mould, smell, days,
+                phQuality, moistQuality, mouldQuality, smellQuality,
+                fermentationScore, quality
+            };
+
+            document.getElementById('silageResultPanel').classList.remove('hidden');
+            document.getElementById('silageResultTime').textContent = currentSilageResult.date;
+            const badge = document.getElementById('silageQualityBadge');
+            badge.textContent = quality;
+            badge.className = 'quality-badge ' + badgeClass;
+
+            // pH marker
+            const phPercent = Math.min(Math.max((ph - 3.5) / 2.5 * 100, 0), 100);
+            document.getElementById('phMarker').style.left = phPercent + '%';
+
+            const metricsHtml = `
+                <div class="metric-card">
+                    <div class="metric-name">pH Level</div>
+                    <div class="metric-value">${ph.toFixed(1)}</div>
+                    <div class="metric-status" style="color:${phColor}">${phQuality.toUpperCase()}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">Moisture</div>
+                    <div class="metric-value">${moisture.toFixed(1)}%</div>
+                    <div class="metric-status">${moistQuality.toUpperCase()}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">Lactic Acid</div>
+                    <div class="metric-value">${lactic.toFixed(1)}%</div>
+                    <div class="metric-status">FERMENTATION</div>
+                </div>
+                <div class="metric-card ${butyric > 0.5 ? 'alert' : ''}">
+                    <div class="metric-name">Butyric Acid</div>
+                    <div class="metric-value">${butyric.toFixed(2)}%</div>
+                    <div class="metric-status" style="color:${butyric > 0.5 ? 'var(--danger)' : 'var(--success)'}">${butyric > 0.5 ? 'CLOSTRIDIAL!' : 'SAFE'}</div>
+                </div>
+                <div class="metric-card ${mould > 2 ? 'alert' : ''}">
+                    <div class="metric-name">Mould Score</div>
+                    <div class="metric-value">${mould}/5</div>
+                    <div class="metric-status" style="color:${mould > 2 ? 'var(--danger)' : 'var(--success)'}">${mouldQuality.toUpperCase()}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">Fermentation Score</div>
+                    <div class="metric-value">${fermentationScore}/100</div>
+                    <div class="metric-status">${quality}</div>
+                </div>
+            `;
+            document.getElementById('silageMetricsGrid').innerHTML = metricsHtml;
+
+            // Advisory
+            const advisories = [];
+            const lang = currentLang;
+            
+            if (ph > 4.5) {
+                advisories.push(lang === 'en' ? 'pH too high - incomplete fermentation. Do not feed to pregnant/dry cows' : 'pH बहुत अधिक - अपूर्ण किण्वन। गर्भवती/सूखी गायों को न खिलाएं');
+                advisories.push(lang === 'en' ? 'Aerobic spoilage risk high - use within 3 days of opening' : 'एरोबिक खराबी का खतरा अधिक - खोलने के 3 दिनों के भीतर उपयोग करें');
+            }
+            if (butyric > 0.5) {
+                advisories.push(lang === 'en' ? '⚠️ Clostridial fermentation detected! Risk of botulism' : '⚠️ क्लोस्ट्रीडियल किण्वन पता चला! बोटुलिज़्म का खतरा');
+                advisories.push(lang === 'en' ? 'Discard this batch - do not feed to any cattle' : 'इस बैच को नष्ट करें - किसी भी पशु को न खिलाएं');
+            }
+            if (moisture > 70) {
+                advisories.push(lang === 'en' ? 'Too wet - add dry absorbent at feed out; check for seepage' : 'बहुत गीला - खिलाते समय सूखा अवशोषक मिलाएं; रिसाव जांचें');
+            }
+            if (moisture < 55) {
+                advisories.push(lang === 'en' ? 'Too dry - poor packing, air pockets likely' : 'बहुत सूखा - खराब पैकिंग, हवा की जेबें संभव');
+            }
+            if (mould > 0) {
+                advisories.push(lang === 'en' ? `Mould level ${mould}/5 - mycotoxin risk. Test for aflatoxin before feeding` : `फफूंद स्तर ${mould}/5 - माइकोटॉक्सिन खतरा। खिलाने से पहले एफ्लाटॉक्सिन जांचें`);
+            }
+            if (smell === 'rotten') {
+                advisories.push(lang === 'en' ? 'Foul smell indicates butyric/acetic spoilage - discard' : 'दुर्गंध ब्यूटिरिक/एसिटिक खराबी का संकेत - नष्ट करें');
+            }
+            if (days < 21) {
+                advisories.push(lang === 'en' ? 'Silage too young - wait 21+ days for stable fermentation' : 'साइलेज बहुत नया - स्थिर किण्वन के लिए 21+ दिन प्रतीक्षा करें');
+            }
+            
+            advisories.push(lang === 'en' ? 'Remove 15cm from face daily to prevent aerobic spoilage' : 'एरोबिक खराबी रोकने के लिए प्रतिदिन 15 सेमी हटाएं');
+            advisories.push(lang === 'en' ? 'Keep bunker covered with plastic; seal edges with tires/soil' : 'बंकर को प्लास्टिक से ढंककर रखें; किनारों को टायर/मिट्टी से सील करें');
+
+            document.getElementById('silageAdvisoryList').innerHTML = advisories.map(a => 
+                `<li><span style="color:${a.includes('⚠️')?'var(--danger)':'var(--primary)'}; font-size:1.2rem;">${a.includes('⚠️')?'⚠️':'✓'}</span> ${a}</li>`
+            ).join('');
+        }
+
+        // ==================== CONTAMINATION DETECTION ====================
+        function simulateBiosensors() {
+            const btn = document.getElementById('bioscanText').parentElement;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Scanning...';
+            
+            setTimeout(() => {
+                document.getElementById('aflatoxinB1').textContent = (Math.random() * 25).toFixed(1);
+                document.getElementById('ochratoxin').textContent = (Math.random() * 15).toFixed(1);
+                document.getElementById('fumonisin').textContent = (Math.random() * 5).toFixed(2);
+                document.getElementById('zearalenone').textContent = (Math.random() * 200).toFixed(0);
+                
+                btn.disabled = false;
+                btn.innerHTML = '<span>🧫</span> <span id="bioscanText">' + (currentLang === 'en' ? 'Re-scan' : 'फिर स्कैन करें') + '</span>';
+                applyTranslations();
+            }, 2000);
+        }
+
+        function analyzeContamination() {
+            const afb1 = parseFloat(document.getElementById('aflatoxinB1').textContent) || 0;
+            const ota = parseFloat(document.getElementById('ochratoxin').textContent) || 0;
+            const fum = parseFloat(document.getElementById('fumonisin').textContent) || 0;
+            const zea = parseFloat(document.getElementById('zearalenone').textContent) || 0;
+            const urea = document.getElementById('ureaTest').value;
+            const sand = document.getElementById('sandTest').value;
+            const fungal = document.getElementById('fungalTest').value;
+            const visual = document.getElementById('visualInspect').value;
+
+            // Thresholds (Indian/FAO standards)
+            const alerts = [];
+            let dangerLevel = 0;
+
+            if (afb1 > 20) { dangerLevel += 3; alerts.push(`Aflatoxin B1: ${afb1.toFixed(1)} ppb EXCEEDS limit (20 ppb)! UNSAFE for dairy`); }
+            else if (afb1 > 10) { dangerLevel += 1; alerts.push(`Aflatoxin B1: ${afb1.toFixed(1)} ppb - Elevated, monitor closely`); }
+            
+            if (ota > 10) { dangerLevel += 2; alerts.push(`Ochratoxin A: ${ota.toFixed(1)} ppb exceeds safe level`); }
+            if (fum > 4) { dangerLevel += 2; alerts.push(`Fumonisin: ${fum.toFixed(2)} ppm - Neurotoxic risk`); }
+            if (zea > 250) { dangerLevel += 1; alerts.push(`Zearalenone: ${zea.toFixed(0)} ppb - Reproductive hormone risk`); }
+
+            if (urea === 'positive') { dangerLevel += 3; alerts.push('UREA ADULTERATION DETECTED - Illegal and toxic!'); }
+            else if (urea === 'trace') { dangerLevel += 1; alerts.push('Trace urea detected - check source'); }
+
+            if (sand === 'heavy') { dangerLevel += 2; alerts.push('Heavy sand/silica contamination - causes rumen impaction'); }
+            else if (sand === 'moderate') { dangerLevel += 1; alerts.push('Moderate sand content - reduce gradually'); }
+
+            if (fungal === 'severe') { dangerLevel += 3; alerts.push('Severe fungal growth - complete batch rejection recommended'); }
+            else if (fungal === 'moderate') { dangerLevel += 2; alerts.push('Moderate fungal growth - test all toxins before use'); }
+
+            if (visual === 'moldy') { dangerLevel += 2; alerts.push('Visible mold - high mycotoxin probability'); }
+
+            let quality, badgeClass;
+            if (dangerLevel === 0) { quality = 'SAFE'; badgeClass = 'quality-excellent'; }
+            else if (dangerLevel <= 2) { quality = 'CAUTION'; badgeClass = 'quality-good'; }
+            else if (dangerLevel <= 5) { quality = 'WARNING'; badgeClass = 'quality-poor'; }
+            else { quality = 'DANGER'; badgeClass = 'quality-danger'; }
+
+            currentContamResult = {
+                id: 'CT-2026-' + String(sampleCounter).padStart(4, '0'),
+                type: 'contamination',
+                date: new Date().toLocaleString(),
+                afb1, ota, fum, zea, urea, sand, fungal, visual,
+                dangerLevel, quality, alerts
+            };
+
+            document.getElementById('contamResultPanel').classList.remove('hidden');
+            document.getElementById('contamResultTime').textContent = currentContamResult.date;
+            const badge = document.getElementById('contamBadge');
+            badge.textContent = quality;
+            badge.className = 'quality-badge ' + badgeClass;
+
+            const alertsHtml = alerts.map(a => 
+                `<div style="padding:0.8rem; margin:0.5rem 0; background:#fff5f5; border-left:4px solid var(--danger); border-radius:8px;">
+                    <strong style="color:var(--danger);">⚠️ ${a}</strong>
+                </div>`
+            ).join('');
+            document.getElementById('contamAlertsContainer').innerHTML = alertsHtml;
+
+            const advisories = [];
+            const lang = currentLang;
+            
+            if (dangerLevel >= 6) {
+                advisories.push(lang === 'en' ? '🔴 CRITICAL: Do NOT feed this batch. Dispose safely away from animals' : '🔴 गंभीर: यह बैच न खिलाएं। पशुओं से दूर सुरक्षित रूप से निपटारें');
+                advisories.push(lang === 'en' ? 'Report to local veterinary authority immediately' : 'तुरंत स्थानीय पशु चिकित्सा प्राधिकरण को रिपोर्ट करें');
+                advisories.push(lang === 'en' ? 'Document and photograph for insurance/liability claims' : 'बीमा/देयता दावों के लिए दस्तावेज़ और फोटो खींचें');
+            } else if (dangerLevel > 0) {
+                advisories.push(lang === 'en' ? '🟡 Dilute contaminated feed with clean feed at 1:3 ratio' : '🟡 प्रदूषित चारे को साफ चारे के साथ 1:3 अनुपात में मिलाएं');
+                advisories.push(lang === 'en' ? 'Add mycotoxin binder (bentonite/yeast cell wall) @ 1-2 kg/ton' : 'माइकोटॉक्सिन बाइंडर (बेंटोनाइट/खमीर सेल वॉल) @ 1-2 किलो/टन मिलाएं');
+                advisories.push(lang === 'en' ? 'Increase liver support: provide molasses, vitamin E, selenium' : 'यकृत सहायता बढ़ाएं: गुड़, विटामिन ई, सेलेनियम उपलब्ध कराएं');
+            } else {
+                advisories.push(lang === 'en' ? '✅ All clear - no contamination detected at biosensor thresholds' : '✅ सब साफ - बायोसेंसर सीमाओं पर कोई संदूषण नहीं पता चला');
+                advisories.push(lang === 'en' ? 'Continue regular testing every 2 weeks during monsoon' : 'मानसून के दौरान हर 2 सप्ताह में नियमित परीक्षण जारी रखें');
+            }
+
+            document.getElementById('contamAdvisoryList').innerHTML = advisories.map(a => 
+                `<li>${a}</li>`
+            ).join('');
+
+            // Update stats
+            updateContaminationStats();
+        }
+
+        function updateContaminationStats() {
+            const safe = testHistory.filter(t => t.quality === 'SAFE' || t.quality === 'EXCELLENT' || t.quality === 'GOOD').length;
+            const alerts = testHistory.filter(t => t.quality === 'WARNING' || t.quality === 'POOR' || t.quality === 'DANGER' || t.quality === 'FAIR').length;
+            document.getElementById('totalTests').textContent = testHistory.length;
+            document.getElementById('safeCount').textContent = safe;
+            document.getElementById('alertCount').textContent = alerts;
+            document.getElementById('pendingCount').textContent = 0;
+        }
+
+        function alertAuthorities() {
+            alert(currentLang === 'en' 
+                ? 'Alert sent to:\n• Local Veterinary Officer\n• District Animal Husbandry Department\n• FSSAI Regional Office\n\nReference: ' + (currentContamResult?.id || 'N/A')
+                : 'अलर्ट भेजा गया:\n• स्थानीय पशु चिकित्सा अधिकारी\n• जिला पशुपालन विभाग\n• FSSAI क्षेत्रीय कार्यालय\n\nसंदर्भ: ' + (currentContamResult?.id || 'N/A'));
+        }
+
+        // ==================== RATION CALCULATOR ====================
+        function generateRation() {
+            const animalType = document.getElementById('animalType').value;
+            const milkYield = parseFloat(document.getElementById('milkYield').value) || 0;
+            const bw = parseFloat(document.getElementById('bodyWeight').value) || 400;
+            const stage = document.getElementById('lactationStage').value;
+            const availableFeeds = Array.from(document.querySelectorAll('.feed-check:checked')).map(c => c.value);
+
+            // Calculate requirements (simplified NRC/ICAR standards)
+            let dmi, cpReq, tdNReq, caReq, pReq;
+            
+            if (animalType === 'lactating') {
+                dmi = (bw * 0.03) + (milkYield * 0.4);
+                cpReq = (bw * 0.12) + (milkYield * 0.85);
+                tdNReq = (bw * 0.65) + (milkYield * 0.35);
+            } else if (animalType === 'dry') {
+                dmi = bw * 0.025;
+                cpReq = bw * 0.08;
+                tdNReq = bw * 0.55;
+            } else if (animalType === 'heifer') {
+                dmi = bw * 0.028;
+                cpReq = bw * 0.10;
+                tdNReq = bw * 0.60;
+            } else if (animalType === 'calf') {
+                dmi = bw * 0.025;
+                cpReq = bw * 0.16;
+                tdNReq = bw * 0.70;
+            } else { // buffalo
+                dmi = (bw * 0.032) + (milkYield * 0.45);
+                cpReq = (bw * 0.13) + (milkYield * 0.90);
+                tdNReq = (bw * 0.68) + (milkYield * 0.38);
+            }
+
+            caReq = bw * 0.04;
+            pReq = bw * 0.03;
+
+            // Build ration from available feeds
+            const ration = [];
+            let remainingDMI = dmi;
+            
+            if (availableFeeds.includes('green-fodder')) {
+                const qty = Math.min(remainingDMI * 0.5, 25);
+                ration.push({ name: 'Green Fodder (Napier/Hybrid)', qty: qty.toFixed(1), unit: 'kg', cost: (qty * 2).toFixed(0) });
+                remainingDMI -= qty;
+            }
+            if (availableFeeds.includes('dry-fodder')) {
+                const qty = Math.min(remainingDMI * 0.4, 8);
+                ration.push({ name: 'Dry Fodder (Wheat Straw)', qty: qty.toFixed(1), unit: 'kg', cost: (qty * 8).toFixed(0) });
+                remainingDMI -= qty;
+            }
+            if (availableFeeds.includes('concentrate')) {
+                const qty = Math.min(remainingDMI * 0.8, Math.max(milkYield * 0.4, 2));
+                ration.push({ name: 'Concentrate Mix', qty: qty.toFixed(1), unit: 'kg', cost: (qty * 22).toFixed(0) });
+                remainingDMI -= qty;
+            }
+            if (availableFeeds.includes('mineral-mix')) {
+                ration.push({ name: 'Mineral Mixture', qty: '50', unit: 'g', cost: '3' });
+            }
+            if (availableFeeds.includes('bypass-fat')) {
+                ration.push({ name: 'Bypass Fat', qty: '100', unit: 'g', cost: '8' });
+            }
+            if (availableFeeds.includes('urea') && animalType !== 'calf') {
+                ration.push({ name: 'Urea (for adult ruminants only)', qty: '20', unit: 'g', cost: '1' });
+            }
+
+            const totalCost = ration.reduce((sum, r) => sum + parseFloat(r.cost), 0);
+
+            document.getElementById('rationResultPanel').classList.remove('hidden');
+            
+            const metricsHtml = `
+                <div class="metric-card">
+                    <div class="metric-name">Dry Matter Intake</div>
+                    <div class="metric-value">${dmi.toFixed(1)} kg</div>
+                    <div class="metric-status">REQUIRED</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">Crude Protein</div>
+                    <div class="metric-value">${cpReq.toFixed(1)}%</div>
+                    <div class="metric-status">REQUIRED</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">TDN</div>
+                    <div class="metric-value">${tdNReq.toFixed(1)}%</div>
+                    <div class="metric-status">REQUIRED</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-name">Ca:P</div>
+                    <div class="metric-value">${caReq.toFixed(2)}:${pReq.toFixed(2)}</div>
+                    <div class="metric-status">REQUIRED</div>
+                </div>
+            `;
+            document.getElementById('rationMetricsGrid').innerHTML = metricsHtml;
+
+            const rationHtml = ration.map(r => `
+                <div class="metric-card" style="border-left-color:var(--accent);">
+                    <div class="metric-name">${r.name}</div>
+                    <div class="metric-value">${r.qty} ${r.unit}</div>
+                    <div class="metric-status">₹${r.cost}/day</div>
+                </div>
+            `).join('');
+            
+            // Insert ration items after metrics
+            const rationGrid = document.createElement('div');
+            rationGrid.className = 'metrics-grid';
+            rationGrid.innerHTML = rationHtml;
+            document.getElementById('rationMetricsGrid').after(rationGrid);
+
+            document.getElementById('costEstimate').textContent = '₹' + totalCost.toFixed(2) + (currentLang === 'en' ? ' per animal/day' : ' प्रति पशु/दिन');
+
+            const advisories = [];
+            const lang = currentLang;
+            
+            if (animalType === 'lactating' && milkYield > 15) {
+                advisories.push(lang === 'en' ? 'High producer: ensure 16-18% CP in ration, consider bypass protein' : 'उच्च उत्पादक: राशन में 16-18% सीपी सुनिश्चित करें, बाइपास प्रोटीन पर विचार करें');
+            }
+            if (stage === 'early') {
+                advisories.push(lang === 'en' ? 'Early lactation: negative energy balance likely - increase concentrate gradually' : 'प्रारंभिक दुग्धावस्था: नकारात्मक ऊर्जा संतुलन संभव - धीरे-धीरे केंद्रित बढ़ाएं');
+            }
+            advisories.push(lang === 'en' ? 'Feed in 3-4 splits per day for optimal rumen function' : 'इष्टतम रूमेन कार्य के लिए दिन में 3-4 बार खिलाएं');
+            advisories.push(lang === 'en' ? 'Ensure clean drinking water: 3-5x DMI volume daily' : 'साफ पीने का पानी सुनिश्चित करें: दैनिक 3-5x डीएमआई मात्रा');
+            advisories.push(lang === 'en' ? 'Monitor body condition score monthly; target 3.0-3.5' : 'मासिक रूप से शरीर की स्थिति स्कोर की निगरानी करें; लक्ष्य 3.0-3.5');
+
+            document.getElementById('rationAdvisoryList').innerHTML = advisories.map(a => 
+                `<li><span style="color:var(--primary);">✓</span> ${a}</li>`
+            ).join('');
+        }
+
+        // ==================== HISTORY & DATA ====================
+        function saveToHistory() {
+            if (!currentFeedResult) return;
+            testHistory.push(currentFeedResult);
+            updateHistoryTable();
+            alert(currentLang === 'en' ? 'Saved to history!' : 'इतिहास में सहेजा गया!');
+        }
+
+        function saveSilageToHistory() {
+            if (!currentSilageResult) return;
+            testHistory.push(currentSilageResult);
+            updateHistoryTable();
+            alert(currentLang === 'en' ? 'Saved to history!' : 'इतिहास में सहेजा गया!');
+        }
+
+        function updateHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            if (testHistory.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-light);">${currentLang==='en'?'No test records found':'कोई परीक्षण रिकॉर्ड नहीं मिला'}</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = testHistory.slice().reverse().map(t => {
+                const statusColor = t.quality === 'EXCELLENT' || t.quality === 'GOOD' || t.quality === 'SAFE' ? 'status-pass' : 
+                                   t.quality === 'FAIR' || t.quality === 'CAUTION' ? 'status-warn' : 'status-fail';
+                const typeLabel = t.type === 'feed' ? (currentLang==='en'?'Feed':'चारा') : 
+                                 t.type === 'silage' ? (currentLang==='en'?'Silage':'साइलेज') : (currentLang==='en'?'Contamination':'संदूषण');
+                return `
+                    <tr>
+                        <td>${t.date}</td>
+                        <td>${t.id}</td>
+                        <td>${typeLabel}</td>
+                        <td>${t.farmer || t.location || 'N/A'}</td>
+                        <td><span class="quality-badge ${t.quality==='EXCELLENT'?'quality-excellent':t.quality==='GOOD'||t.quality==='SAFE'?'quality-good':t.quality==='FAIR'||t.quality==='CAUTION'?'quality-poor':'quality-danger'}">${t.quality}</span></td>
+                        <td><span class="status-dot ${statusColor}"></span>${t.quality}</td>
+                        <td><button class="btn btn-info" style="padding:0.3rem 0.6rem; font-size:0.8rem;" onclick="viewDetail('${t.id}')">View</button></td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Update stats
+            const pass = testHistory.filter(t => ['EXCELLENT','GOOD','SAFE'].includes(t.quality)).length;
+            const warn = testHistory.filter(t => ['FAIR','CAUTION'].includes(t.quality)).length;
+            const fail = testHistory.filter(t => ['POOR','WARNING','DANGER'].includes(t.quality)).length;
+            document.getElementById('histTotal').textContent = testHistory.length;
+            document.getElementById('histPass').textContent = pass;
+            document.getElementById('histWarn').textContent = warn;
+            document.getElementById('histFail').textContent = fail;
+        }
+
+        function viewDetail(id) {
+            const record = testHistory.find(t => t.id === id);
+            if (!record) return;
+            alert(`Sample: ${record.id}\nType: ${record.type}\nQuality: ${record.quality}\nDate: ${record.date}\n\nFull report available in detailed view.`);
+        }
+
+        function clearHistory() {
+            if (confirm(currentLang === 'en' ? 'Clear all history?' : 'सभी इतिहास साफ़ करें?')) {
+                testHistory = [];
+                updateHistoryTable();
+            }
+        }
+
+        function exportData() {
+            const csv = [
+                ['Date','Sample ID','Type','Farmer','Location','Quality','Score/Details'].join(','),
+                ...testHistory.map(t => [
+                    t.date, t.id, t.type, t.farmer || 'N/A', t.location || 'N/A', 
+                    t.quality, JSON.stringify(t.alerts || []).replace(/,/g, ';')
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dairyfeed_test_history_' + new Date().toISOString().slice(0,10) + '.csv';
+            a.click();
+        }
+
+        // ==================== QR & TRACEABILITY ====================
+        function generateQR() {
+            if (!currentFeedResult) return;
+            document.getElementById('qrInput').value = currentFeedResult.id;
+            lookupTraceability();
+            showTab('traceability');
+        }
+
+        function generateSilageQR() {
+            if (!currentSilageResult) return;
+            document.getElementById('qrInput').value = currentSilageResult.id;
+            lookupTraceability();
+            showTab('traceability');
+        }
+
+        function lookupTraceability() {
+            const id = document.getElementById('qrInput').value;
+            const record = testHistory.find(t => t.id === id) || currentFeedResult || currentSilageResult;
+            
+            document.getElementById('qrSampleId').textContent = (currentLang==='en'?'Sample: ':'नमूना: ') + id;
+            
+            if (!record) {
+                document.getElementById('qrStatus').textContent = currentLang==='en'?'Status: Not found in local records':'स्थिति: स्थानीय रिकॉर्ड में नहीं मिला';
+                document.getElementById('traceDetails').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('qrStatus').textContent = (currentLang==='en'?'Status: ':'स्थिति: ') + record.quality;
+            document.getElementById('traceDetails').classList.remove('hidden');
+
+            const traceHtml = `
+                <p><strong>${currentLang==='en'?'Test Date':'परीक्षण तारीख'}:</strong> ${record.date}</p>
+                <p><strong>${currentLang==='en'?'Sample Type':'नमूना प्रकार'}:</strong> ${record.type}</p>
+                <p><strong>${currentLang==='en'?'Farmer':'किसान'}:</strong> ${record.farmer || 'N/A'}</p>
+                <p><strong>${currentLang==='en'?'Location':'स्थान'}:</strong> ${record.location || 'N/A'}</p>
+                <hr style="margin:1rem 0; border:none; border-top:1px solid var(--border);">
+                <p><strong>${currentLang==='en'?'Quality Score':'गुणवत्ता स्कोर'}:</strong> <span style="color:${record.quality==='EXCELLENT'||record.quality==='GOOD'?'var(--success)':'var(--danger)'}">${record.quality}</span></p>
+                <p><strong>${currentLang==='en'?'Blockchain Hash':'ब्लॉकचेन हैश'}:</strong> <code style="background:#f0f0f0; padding:0.2rem 0.5rem; border-radius:4px; font-size:0.8rem;">0x${Math.random().toString(16).slice(2,34)}</code></p>
+                <p style="margin-top:0.5rem; color:var(--text-light); font-size:0.85rem;">
+                    ${currentLang==='en'?'Verified on DairyFeed Blockchain at':'डेयरीफीड ब्लॉकचेन पर सत्यापित'} ${new Date().toLocaleString()}
+                </p>
+            `;
+            document.getElementById('traceContent').innerHTML = traceHtml;
+        }
+
+        function shareResult() {
+            if (!currentFeedResult) return;
+            const text = `DairyFeed AI Report\nSample: ${currentFeedResult.id}\nQuality: ${currentFeedResult.quality}\nCP: ${currentFeedResult.cp}%\nDate: ${currentFeedResult.date}`;
+            if (navigator.share) {
+                navigator.share({ title: 'DairyFeed Report', text: text });
+            } else {
+                navigator.clipboard.writeText(text);
+                alert(currentLang === 'en' ? 'Report copied to clipboard!' : 'रिपोर्ट क्लिपबोर्ड पर कॉपी की गई!');
+            }
+        }
+
+        // ==================== OFFLINE DETECTION ====================
+        function updateOnlineStatus() {
+            const badge = document.getElementById('offlineBadge');
+            if (!navigator.onLine) {
+                badge.classList.add('show');
+            } else {
+                badge.classList.remove('show');
+            }
+        }
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Generate initial sample ID
+            document.getElementById('sampleId').value = 'FD-2026-' + String(sampleCounter).padStart(4, '0');
+            
+            // Set some defaults
+            document.getElementById('farmerName').value = 'Ram Singh';
+            document.getElementById('location').value = 'Meerut, UP';
+            document.getElementById('silageFarmer').value = 'Ram Singh';
+            document.getElementById('silageLocation').value = 'Meerut, UP';
+            document.getElementById('storageDays').value = '45';
+            document.getElementById('milkYield').value = '15';
+            document.getElementById('bodyWeight').value = '450';
+        });
+    </script>
+</body>
+</html>
